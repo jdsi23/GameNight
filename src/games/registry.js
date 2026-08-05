@@ -1,0 +1,34 @@
+import WhatsMyNumber from './whats-my-number/WhatsMyNumber'
+import IsItThatBad from './is-it-that-bad/IsItThatBad'
+import WhoWroteThat from './who-wrote-that/WhoWroteThat'
+
+export const GAMES = [
+  {
+    id: 'whats-my-number',
+    name: "What's My Number?",
+    description:
+      'Everyone gets a secret number only the group can see. Guess your own before you run out of tries.',
+    minPlayers: 2,
+    component: WhatsMyNumber,
+  },
+  {
+    id: 'is-it-that-bad',
+    name: 'Is It Really That Bad?',
+    description:
+      'One player gets a topic spun Good or Evil. Grill them for 5 minutes, then guess which it was.',
+    minPlayers: 2,
+    component: IsItThatBad,
+  },
+  {
+    id: 'who-wrote-that',
+    name: 'Who Wrote That?',
+    description:
+      'A classic paragraph gets vandalized one word at a time. Race to claim a line and ruin it.',
+    minPlayers: 2,
+    component: WhoWroteThat,
+  },
+]
+
+export function getGame(gameId) {
+  return GAMES.find((g) => g.id === gameId)
+}
