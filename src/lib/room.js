@@ -25,7 +25,16 @@ export function hostUidRef(code) {
   return ref(db, `rooms/${code}/meta/hostUid`)
 }
 
-/** Creates a new room with a fresh code and makes `uid` the host. Returns the room code. */
+/**
+ * Creates a new room with a fresh code and makes `uid` the host. Returns the room code.
+ *
+ * This has to be three *sequential, separately-awaited* writes rather than one multi-path
+ * update(): the `hostUid` rule requires the claimer to already be a room member, and the
+ * `status`/`gameId` rules require the *current* `hostUid` to match the caller. Whether a
+ * security rule's `root` reliably sees sibling paths from the same multi-location update is
+ * not something to rely on — each write below only ever reads data that a *previous, already
+ * -committed* write produced, so every rule check is unambiguous.
+ */
 export async function createRoom(uid, nickname) {
   for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
     const code = generateRoomCode()
@@ -33,17 +42,16 @@ export async function createRoom(uid, nickname) {
     const existing = await get(metaRef)
     if (existing.exists()) continue
 
-    // Single atomic multi-path write: the hostUid rule requires the claimer to already be
-    // a room member, so the player entry has to land in the *same* write as the host claim
-    // (otherwise `root.child(players/uid).exists()` would be false when hostUid is checked).
-    await update(roomRef(code), {
-      'meta/hostUid': uid,
-      'meta/status': 'lobby',
-      'meta/gameId': null,
-      'meta/createdAt': serverTimestamp(),
-      [`players/${uid}/name`]: nickname,
-      [`players/${uid}/joinedAt`]: serverTimestamp(),
-      [`players/${uid}/connected`]: true,
+    await set(playerRef(code, uid), {
+      name: nickname,
+      joinedAt: serverTimestamp(),
+      connected: true,
+    })
+    await set(hostUidRef(code), uid)
+    await update(metaRef, {
+      status: 'lobby',
+      gameId: null,
+      createdAt: serverTimestamp(),
     })
     onDisconnect(hostUidRef(code)).set(null)
     return code
