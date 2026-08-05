@@ -97,21 +97,22 @@ export default function IsItThatBad({ code, me, hostUid, playerList, connectedCo
       {game.phase === 'discussion' && (
         <>
           <div className="card center-text">
+            <p style={{ color: 'var(--text-dim)', margin: 0 }}>Topic</p>
+            <p style={{ fontSize: '1.4rem', margin: '0.3rem 0' }}>{game.topic}</p>
             {iAmHolder ? (
-              <>
-                <p style={{ color: 'var(--text-dim)', margin: 0 }}>Your topic</p>
-                <p style={{ fontSize: '1.3rem', margin: '0.3rem 0' }}>"{game.topic}"</p>
-                <p>
-                  Play it{' '}
-                  <strong style={{ color: game.alignment === 'good' ? 'var(--good)' : 'var(--bad)' }}>
-                    {game.alignment === 'good' ? 'GOOD' : 'EVIL'}
-                  </strong>
-                  . Don't say the word out loud!
-                </p>
-              </>
+              <p>
+                Play it{' '}
+                <strong style={{ color: game.alignment === 'good' ? 'var(--good)' : 'var(--bad)' }}>
+                  {game.alignment === 'good' ? 'GOOD' : 'EVIL'}
+                </strong>
+                . Answer everyone's scenario questions in a way that hints at it — without ever
+                saying the word out loud.
+              </p>
             ) : (
               <p>
-                {holderName} has a topic spun Good or Evil. Grill them with questions — you have{' '}
+                Ask {holderName} scenario questions about it — "What's the worst thing to
+                bring?", "What would you do first?" — to figure out if they're playing this Good
+                or Evil. You have{' '}
                 <strong>
                   {minutes}:{seconds}
                 </strong>

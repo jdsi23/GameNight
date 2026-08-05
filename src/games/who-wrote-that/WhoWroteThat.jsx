@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import PlayAgainScreen from '../../components/PlayAgainScreen'
-import { TEXTS } from './texts'
 import { checkRoundComplete, claimSegment, setupRound, submitSegment } from './state'
 
 export default function WhoWroteThat({ code, me, hostUid, playerList, game }) {
@@ -25,7 +24,6 @@ export default function WhoWroteThat({ code, me, hostUid, playerList, game }) {
     )
   }
 
-  const source = TEXTS.find((t) => t.id === game.textId)
   const nameFor = (uid) => playerList.find((p) => p.uid === uid)?.name ?? '???'
 
   if (game.phase === 'reveal') {
@@ -38,7 +36,7 @@ export default function WhoWroteThat({ code, me, hostUid, playerList, game }) {
         title="The finished masterpiece"
       >
         <p className="paragraph-block" style={{ textAlign: 'left' }}>
-          {source.parts.map((part, i) =>
+          {game.parts.map((part, i) =>
             part.type === 'text' ? (
               <span key={i}>{part.value}</span>
             ) : (
@@ -49,12 +47,12 @@ export default function WhoWroteThat({ code, me, hostUid, playerList, game }) {
           )}
         </p>
         <div className="player-list" style={{ marginTop: '1rem', textAlign: 'left' }}>
-          {source.parts
+          {game.parts
             .filter((p) => p.type === 'editable')
             .map((p) => (
               <li key={p.id} style={{ display: 'block' }}>
-                <span style={{ color: 'var(--text-dim)' }}>"{p.original}"</span> became{' '}
-                <strong>"{game.segments[p.id].current}"</strong>
+                <span style={{ color: 'var(--text-dim)' }}>"{game.segments[p.id].original}"</span>{' '}
+                became <strong>"{game.segments[p.id].current}"</strong>
                 {game.segments[p.id].claimedBy && (
                   <span className="tag" style={{ marginLeft: '0.5rem' }}>
                     {nameFor(game.segments[p.id].claimedBy)}
@@ -84,7 +82,7 @@ export default function WhoWroteThat({ code, me, hostUid, playerList, game }) {
 
       <div className="card">
         <p className="paragraph-block" style={{ textAlign: 'left' }}>
-          {source.parts.map((part, i) => {
+          {game.parts.map((part, i) => {
             if (part.type === 'text') return <span key={i}>{part.value}</span>
             const seg = game.segments[part.id]
             return (
@@ -129,7 +127,10 @@ function EditableSegment({ code, segmentId, segment, isMine, onClaim }) {
               submitSegment(code, segmentId, draft.trim())
             }
           }}
-          style={{ width: `${Math.max(6, draft.length + 2)}ch` }}
+          style={{
+            width: `${Math.max(8, draft.length + 4)}ch`,
+            padding: '0.4em 0.6em',
+          }}
         />
         <button
           disabled={!draft.trim()}

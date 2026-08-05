@@ -1,116 +1,14 @@
 // Original passages written for this game (not excerpts from real books/articles), styled
-// like different genres so the "vandalize the paragraph" bit has room to be funny. Each has
-// exactly 10 editable segments.
-function seg(id, original) {
-  return { type: 'editable', id, original }
-}
-function text(value) {
-  return { type: 'text', value }
-}
-
-export const TEXTS = [
-  {
-    id: 'fairy-tale',
-    parts: [
-      text('Once upon a time, in a '),
-      seg('s1', 'quiet'),
-      text(' kingdom by the sea, there lived a '),
-      seg('s2', 'baker'),
-      text(' who dreamed of nothing but '),
-      seg('s3', 'adventure'),
-      text('. Every morning, the baker would '),
-      seg('s4', 'wander'),
-      text(' through the castle halls, humming a tune about '),
-      seg('s5', 'the ocean'),
-      text('. The king, a wise but '),
-      seg('s6', 'strict'),
-      text(' man, had only one rule: never '),
-      seg('s7', 'open the gates'),
-      text(' after midnight. But one fateful night, everything changed when a '),
-      seg('s8', 'mysterious'),
-      text(' stranger arrived carrying a '),
-      seg('s9', 'lantern'),
-      text(' and whispering about '),
-      seg('s10', 'the future'),
-      text('.'),
-    ],
-  },
-  {
-    id: 'nature-doc',
-    parts: [
-      text('Deep within the '),
-      seg('s1', 'dense'),
-      text(' forest, the '),
-      seg('s2', 'gray wolf'),
-      text(' begins its nightly search for '),
-      seg('s3', 'food'),
-      text('. It moves with '),
-      seg('s4', 'silent'),
-      text(' precision, guided by an instinct passed down for '),
-      seg('s5', 'thousands of years'),
-      text('. Nearby, a group of '),
-      seg('s6', 'curious'),
-      text(' rabbits watch from the '),
-      seg('s7', 'undergrowth'),
-      text(', unaware that tonight will end in '),
-      seg('s8', 'a narrow escape'),
-      text('. As the moon rises over the '),
-      seg('s9', 'valley'),
-      text(', the forest falls '),
-      seg('s10', 'still'),
-      text(', holding its breath for what comes next.'),
-    ],
-  },
-  {
-    id: 'instruction-manual',
-    parts: [
-      text('Step one: remove the '),
-      seg('s1', 'protective cover'),
-      text(' and place the device on a '),
-      seg('s2', 'flat surface'),
-      text('. Step two: connect the '),
-      seg('s3', 'blue cable'),
-      text(' to the port labeled '),
-      seg('s4', 'POWER'),
-      text('. Do not touch the '),
-      seg('s5', 'metal contacts'),
-      text(' while the unit is '),
-      seg('s6', 'charging'),
-      text('. Once the light turns '),
-      seg('s7', 'green'),
-      text(', press and hold the '),
-      seg('s8', 'start button'),
-      text(' for '),
-      seg('s9', 'three seconds'),
-      text('. If the device begins to '),
-      seg('s10', 'beep rapidly'),
-      text(', unplug it immediately.'),
-    ],
-  },
-  {
-    id: 'news-report',
-    parts: [
-      text('Local officials confirmed today that the '),
-      seg('s1', 'annual festival'),
-      text(' will proceed as planned despite concerns over '),
-      seg('s2', 'the weather'),
-      text(". Organizers say this year's event will feature a "),
-      seg('s3', 'pie-eating contest'),
-      text(', a performance by the '),
-      seg('s4', 'high school band'),
-      text(', and a raffle for '),
-      seg('s5', 'a new bicycle'),
-      text('. Mayor '),
-      seg('s6', 'Jonathan Reyes'),
-      text(' urged residents to arrive '),
-      seg('s7', 'early'),
-      text(' and expect '),
-      seg('s8', 'heavy traffic'),
-      text(' near '),
-      seg('s9', 'Main Street'),
-      text('. The festival begins at '),
-      seg('s10', 'nine in the morning'),
-      text(' and runs until sundown.'),
-    ],
-  },
+// like different genres so the "vandalize the paragraph" bit has room to be funny. Which
+// ~10 words are editable is chosen at random each round (see state.js), not fixed here, so
+// replaying doesn't feel identical even when the same paragraph comes up twice.
+export const PARAGRAPHS = [
+  "Once upon a time, in a quiet kingdom by the sea, there lived a baker who dreamed of nothing but adventure. Every morning, the baker would wander through the castle halls, humming a tune about the ocean. The king, a wise but strict man, had only one rule: never open the gates after midnight. But one fateful night, everything changed when a mysterious stranger arrived carrying a lantern and whispering about the future.",
+  'Deep within the dense forest, the gray wolf begins its nightly search for food. It moves with silent precision, guided by an instinct passed down for thousands of years. Nearby, a group of curious rabbits watch from the undergrowth, unaware that tonight will end in a narrow escape. As the moon rises over the valley, the forest falls still, holding its breath for what comes next.',
+  'Step one: remove the protective cover and place the device on a flat surface. Step two: connect the blue cable to the port labeled POWER. Do not touch the metal contacts while the unit is charging. Once the light turns green, press and hold the start button for three seconds. If the device begins to beep rapidly, unplug it immediately.',
+  "Local officials confirmed today that the annual festival will proceed as planned despite concerns over the weather. Organizers say this year's event will feature a pie-eating contest, a performance by the high school band, and a raffle for a new bicycle. Mayor Jonathan Reyes urged residents to arrive early and expect heavy traffic near Main Street. The festival begins at nine in the morning and runs until sundown.",
+  'With two minutes left on the clock, the home team calls a timeout to regroup. The coach kneels down, sketches a play on his clipboard, and reminds everyone to protect the ball. As the whistle blows, the crowd rises to its feet, waving banners and chanting the team name. The point guard dribbles calmly past midcourt, searching for an opening near the free throw line.',
+  'Preheat the oven to 375 degrees and line a baking sheet with parchment paper. In a large bowl, whisk together the flour, sugar, and a pinch of salt. Fold in the melted butter until the mixture forms a soft, sticky dough. Chill the dough for twenty minutes before rolling it into small balls. Bake for twelve minutes, or until the edges turn golden brown.',
+  "Tomorrow's forecast calls for scattered clouds in the morning, clearing up by early afternoon. Expect a light breeze from the northwest and a high near seventy degrees. There is a small chance of a passing shower around sunset, so it might be wise to keep an umbrella nearby. Overnight temperatures will dip into the low fifties under a mostly clear sky.",
+  'The new smartphone features a brighter display, a faster processor, and a redesigned camera module. Reviewers praised the sleek metal frame but noted that the battery life falls short of expectations. In daily use, the phone handles multitasking smoothly and rarely shows any lag. At this price point, it competes directly with several well established flagship models.',
 ]

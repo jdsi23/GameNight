@@ -24,11 +24,17 @@
 }
 
 .brand h1 {
-  font-size: 2.4rem;
-  background: linear-gradient(90deg, var(--accent), #ff9dd1);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-family: 'Luckiest Guy', 'Segoe UI', sans-serif;
+  font-weight: 400;
+  font-size: 3.4rem;
+  letter-spacing: 0.02em;
+  color: #e5202a;
+  -webkit-text-stroke: 3px #fff8e0;
+  paint-order: stroke fill;
+  text-shadow:
+    4px 4px 0 rgba(0, 0, 0, 0.35),
+    0 0 20px rgba(255, 210, 0, 0.35);
+  margin: 0;
 }
 
 .brand p {
@@ -132,6 +138,19 @@
 
 .game-card h3 {
   margin: 0;
+  font-family: 'Luckiest Guy', 'Segoe UI', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-size: 1.3rem;
+  color: #ffd23f;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.card > h3 {
+  font-family: 'Luckiest Guy', 'Segoe UI', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--accent-hover);
 }
 
 .game-card p {

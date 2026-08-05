@@ -1,10 +1,22 @@
 import { update } from 'firebase/database'
-import { gameRef, randomInt, shuffle } from '../../lib/gameUtils'
+import { gameRef, shuffle } from '../../lib/gameUtils'
 import { attemptTransaction } from '../../lib/transactions'
 
-const MIN = -2500
-const MAX = 2500
+const MAX_MAGNITUDE = 2500
 const STARTING_ATTEMPTS = 3
+
+// Numbers near 0 are common, numbers near +/-2500 are rare, and negatives are drawn
+// slightly less often than positives. u^POWER pushed through Math.random() concentrates
+// mass near 0 (bigger POWER = heavier nerf on large magnitudes); the sign roll is skewed
+// so negative numbers come up a bit less than positive ones.
+const MAGNITUDE_POWER = 3.5
+const NEGATIVE_CHANCE = 0.44
+
+function randomNumber() {
+  const magnitude = Math.round(Math.pow(Math.random(), MAGNITUDE_POWER) * MAX_MAGNITUDE)
+  if (magnitude === 0) return 0
+  return Math.random() < NEGATIVE_CHANCE ? -magnitude : magnitude
+}
 
 /** Attempted by any client once it sees an empty game node for this room. */
 export async function setupRound(code, uids) {
@@ -15,7 +27,7 @@ export async function setupRound(code, uids) {
     const attemptsLeft = {}
     const status = {}
     for (const uid of uids) {
-      numbers[uid] = randomInt(MIN, MAX)
+      numbers[uid] = randomNumber()
       attemptsLeft[uid] = STARTING_ATTEMPTS
       status[uid] = 'active'
     }

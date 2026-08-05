@@ -2,35 +2,72 @@ import { ref, update } from 'firebase/database'
 import { db } from '../../lib/firebase'
 import { gameRef, randomInt, shuffle } from '../../lib/gameUtils'
 import { attemptTransaction } from '../../lib/transactions'
-import { TEXTS } from './texts'
+import { PARAGRAPHS } from './texts'
+
+const TARGET_EDITABLE_COUNT = 10
+
+/** Splits on whitespace while keeping the whitespace itself as tokens, so rejoining is lossless. */
+function tokenize(paragraph) {
+  return paragraph.split(/(\s+)/).filter((t) => t.length > 0)
+}
+
+/** Builds a fresh { parts, segments } pair with a random paragraph and random editable words. */
+function buildRound(uids) {
+  const paragraph = PARAGRAPHS[randomInt(0, PARAGRAPHS.length - 1)]
+  const tokens = tokenize(paragraph)
+
+  const wordIndices = tokens
+    .map((t, i) => ({ t, i }))
+    .filter((o) => o.t.trim().length > 0)
+
+  // Prefer meatier words for comedic effect; only fall back to short ones if there aren't
+  // enough long ones in this particular paragraph.
+  const longWordIndices = wordIndices.filter((o) => o.t.replace(/[^a-zA-Z]/g, '').length >= 3)
+  const pool = longWordIndices.length >= TARGET_EDITABLE_COUNT ? longWordIndices : wordIndices
+
+  const chosenIndices = new Set(
+    shuffle(pool.map((o) => o.i)).slice(0, Math.min(TARGET_EDITABLE_COUNT, pool.length))
+  )
+
+  const parts = []
+  const segments = {}
+  let textBuffer = ''
+  let segCount = 0
+
+  const flush = () => {
+    if (textBuffer) {
+      parts.push({ type: 'text', value: textBuffer })
+      textBuffer = ''
+    }
+  }
+
+  tokens.forEach((token, i) => {
+    if (chosenIndices.has(i)) {
+      flush()
+      const id = `s${segCount++}`
+      parts.push({ type: 'editable', id })
+      segments[id] = { original: token, current: token, claimedBy: null, filled: false }
+    } else {
+      textBuffer += token
+    }
+  })
+  flush()
+
+  const editableIds = Object.keys(segments)
+  const shuffledUids = shuffle(uids)
+  shuffle(editableIds).forEach((id, i) => {
+    if (i < shuffledUids.length) segments[id].claimedBy = shuffledUids[i]
+  })
+
+  return { parts, segments }
+}
 
 export async function setupRound(code, uids) {
   if (uids.length === 0) return
   await attemptTransaction(gameRef(code), (current) => {
     if (current) return
-    const source = TEXTS[randomInt(0, TEXTS.length - 1)]
-    const editableIds = source.parts.filter((p) => p.type === 'editable').map((p) => p.id)
-    const assignmentOrder = shuffle(editableIds)
-    const shuffledUids = shuffle(uids)
-
-    const segments = {}
-    source.parts
-      .filter((p) => p.type === 'editable')
-      .forEach((p) => {
-        segments[p.id] = {
-          original: p.original,
-          current: p.original,
-          claimedBy: null,
-          filled: false,
-        }
-      })
-    assignmentOrder.forEach((segId, i) => {
-      if (i < shuffledUids.length) {
-        segments[segId].claimedBy = shuffledUids[i]
-      }
-    })
-
-    return { phase: 'editing', textId: source.id, segments }
+    const { parts, segments } = buildRound(uids)
+    return { phase: 'editing', parts, segments }
   })
 }
 

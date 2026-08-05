@@ -50,7 +50,6 @@ export default function Home() {
     <div className="page page-narrow">
       <div className="brand">
         <h1>Game Night</h1>
-        <p>Grab a code, gather your crew, cause chaos.</p>
       </div>
 
       <div className="card">

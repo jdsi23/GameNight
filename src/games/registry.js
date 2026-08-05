@@ -15,7 +15,7 @@ export const GAMES = [
     id: 'is-it-that-bad',
     name: 'Is It Really That Bad?',
     description:
-      'One player gets a topic spun Good or Evil. Grill them for 5 minutes, then guess which it was.',
+      'Everyone sees the topic. Only one player is secretly playing it Good or Evil — grill them with scenario questions for 5 minutes, then guess which way they were leaning.',
     minPlayers: 2,
     component: IsItThatBad,
   },
