@@ -1,21 +1,24 @@
 import { update } from 'firebase/database'
-import { gameRef, shuffle } from '../../lib/gameUtils'
+import { gameRef } from '../../lib/gameUtils'
 import { attemptTransaction } from '../../lib/transactions'
 
-const MAX_MAGNITUDE = 2500
+const MIN = -500
+const MAX = 1000
 const STARTING_ATTEMPTS = 3
 
-// Numbers near 0 are common, numbers near +/-2500 are rare, and negatives are drawn
-// slightly less often than positives. u^POWER pushed through Math.random() concentrates
-// mass near 0 (bigger POWER = heavier nerf on large magnitudes); the sign roll is skewed
-// so negative numbers come up a bit less than positive ones.
+// Numbers near 0 are common, numbers near the edges of the range are rare, and negatives are
+// drawn slightly less often than positives. u^POWER pushed through Math.random() concentrates
+// mass near 0 (bigger POWER = heavier nerf on large magnitudes); each side is capped at its own
+// edge of the (asymmetric) range so a "large negative" and "large positive" mean different things.
 const MAGNITUDE_POWER = 3.5
 const NEGATIVE_CHANCE = 0.44
 
 function randomNumber() {
-  const magnitude = Math.round(Math.pow(Math.random(), MAGNITUDE_POWER) * MAX_MAGNITUDE)
+  const negative = Math.random() < NEGATIVE_CHANCE
+  const cap = negative ? Math.abs(MIN) : MAX
+  const magnitude = Math.round(Math.pow(Math.random(), MAGNITUDE_POWER) * cap)
   if (magnitude === 0) return 0
-  return Math.random() < NEGATIVE_CHANCE ? -magnitude : magnitude
+  return negative ? -magnitude : magnitude
 }
 
 /** Attempted by any client once it sees an empty game node for this room. */
@@ -34,12 +37,10 @@ export async function setupRound(code, uids) {
     return {
       phase: 'discuss',
       numbers,
-      turnOrder: shuffle(uids),
-      turnIndex: 0,
       attemptsLeft,
       status,
       ready: {},
-      log: [],
+      guesses: [],
     }
   })
 }
@@ -49,46 +50,37 @@ export async function beginGuessing(code) {
   await update(gameRef(code), { phase: 'guessing' })
 }
 
-/** Only meaningful when called by the player whose turn it is; the transaction re-checks. */
+/**
+ * Anyone can guess at any time (no turn order) as long as they still have tries left.
+ * Guesses are logged anonymously — the value and whether it was right, never who made it —
+ * and stay visible on screen for the rest of the round.
+ */
 export async function submitGuess(code, uid, guessValue) {
   await attemptTransaction(gameRef(code), (current) => {
     if (!current || current.phase !== 'guessing') return
-    const turnUid = current.turnOrder[current.turnIndex]
-    if (turnUid !== uid) return
+    if (current.status[uid] !== 'active') return
 
-    const correct = current.numbers[turnUid] === guessValue
+    const correct = current.numbers[uid] === guessValue
     const nextStatus = { ...current.status }
     const nextAttempts = { ...current.attemptsLeft }
 
     if (correct) {
-      nextStatus[turnUid] = 'won'
+      nextStatus[uid] = 'won'
     } else {
-      const remaining = (current.attemptsLeft[turnUid] ?? STARTING_ATTEMPTS) - 1
-      nextAttempts[turnUid] = remaining
-      if (remaining <= 0) nextStatus[turnUid] = 'lost'
+      const remaining = (current.attemptsLeft[uid] ?? STARTING_ATTEMPTS) - 1
+      nextAttempts[uid] = remaining
+      if (remaining <= 0) nextStatus[uid] = 'lost'
     }
 
-    const order = current.turnOrder
-    let nextIndex = current.turnIndex
-    let foundNext = false
-    for (let step = 1; step <= order.length; step++) {
-      const candidateIdx = (current.turnIndex + step) % order.length
-      if (nextStatus[order[candidateIdx]] === 'active') {
-        nextIndex = candidateIdx
-        foundNext = true
-        break
-      }
-    }
-
-    const log = [...(current.log ?? []), { uid: turnUid, guess: guessValue, correct }]
+    const guesses = [...(current.guesses ?? []), { value: guessValue, correct }]
+    const allResolved = Object.values(nextStatus).every((s) => s !== 'active')
 
     return {
       ...current,
       status: nextStatus,
       attemptsLeft: nextAttempts,
-      turnIndex: nextIndex,
-      phase: foundNext ? 'guessing' : 'complete',
-      log,
+      guesses,
+      phase: allResolved ? 'complete' : 'guessing',
     }
   })
 }

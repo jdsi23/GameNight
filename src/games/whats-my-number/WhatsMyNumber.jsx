@@ -31,8 +31,6 @@ export default function WhatsMyNumber({ code, me, hostUid, playerList, connected
     )
   }
 
-  const nameFor = (uid) => playerList.find((p) => p.uid === uid)?.name ?? '???'
-
   if (game.phase === 'complete') {
     const winners = playerList.filter((p) => game.status[p.uid] === 'won')
     const losers = playerList.filter((p) => game.status[p.uid] === 'lost')
@@ -72,8 +70,8 @@ export default function WhatsMyNumber({ code, me, hostUid, playerList, connected
     )
   }
 
-  const turnUid = game.turnOrder[game.turnIndex]
-  const myTurn = game.phase === 'guessing' && turnUid === me.uid
+  const myStatus = game.status[me.uid]
+  const canGuess = game.phase === 'guessing' && myStatus === 'active'
 
   return (
     <div className="page">
@@ -94,7 +92,6 @@ export default function WhatsMyNumber({ code, me, hostUid, playerList, connected
             const status = game.status[p.uid]
             const classes = [
               'number-card',
-              game.phase === 'guessing' && turnUid === p.uid ? 'turn' : '',
               status === 'won' ? 'won' : '',
               status === 'lost' ? 'lost' : '',
             ].join(' ')
@@ -125,17 +122,17 @@ export default function WhatsMyNumber({ code, me, hostUid, playerList, connected
 
       {game.phase === 'guessing' && (
         <div className="card center-text">
-          {myTurn ? (
+          {canGuess ? (
             <div>
-              <p>It's your turn! What's your number?</p>
+              <p>What's your number? Guess whenever you're ready.</p>
               <div className="row" style={{ maxWidth: 320, margin: '0 auto' }}>
                 <input
                   type="number"
-                  min={-2500}
-                  max={2500}
+                  min={-500}
+                  max={1000}
                   value={guess}
                   onChange={(e) => setGuess(e.target.value)}
-                  placeholder="-2500 to 2500"
+                  placeholder="-500 to 1000"
                 />
                 <button
                   disabled={guess.trim() === ''}
@@ -150,8 +147,37 @@ export default function WhatsMyNumber({ code, me, hostUid, playerList, connected
               </div>
             </div>
           ) : (
-            <p>Waiting for {nameFor(turnUid)} to guess...</p>
+            <p style={{ color: 'var(--text-dim)' }}>
+              {myStatus === 'won' ? "You already won this round!" : "You're out of tries — watch how everyone else does."}
+            </p>
           )}
+        </div>
+      )}
+
+      {game.phase === 'guessing' && game.guesses?.length > 0 && (
+        <div className="card">
+          <h3>Guesses so far</h3>
+          <p style={{ color: 'var(--text-dim)', marginTop: 0, fontSize: '0.85rem' }}>
+            Anonymous — everyone's guesses, not tied to who made them.
+          </p>
+          <div className="row" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+            {game.guesses
+              .slice()
+              .reverse()
+              .map((g, i) => (
+                <span
+                  key={i}
+                  className="pill"
+                  style={{
+                    flex: 'none',
+                    borderColor: g.correct ? 'var(--good)' : 'var(--border)',
+                    color: g.correct ? 'var(--good)' : 'var(--text-dim)',
+                  }}
+                >
+                  {g.value} {g.correct ? '✓' : '✗'}
+                </span>
+              ))}
+          </div>
         </div>
       )}
     </div>

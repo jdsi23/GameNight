@@ -1,28 +1,100 @@
 import { useEffect, useState } from 'react'
+import ReadyButton from '../../components/ReadyButton'
 import PlayAgainScreen from '../../components/PlayAgainScreen'
-import { checkRoundComplete, claimSegment, setupRound, submitSegment } from './state'
+import { getReadyStatus } from '../../lib/majorityReady'
+import TraditionalMode from './TraditionalMode'
+import {
+  beginRound,
+  checkGroupRoundComplete,
+  claimSegment,
+  setGroupMode,
+  setupLobby,
+  submitSegment,
+} from './state'
 
-export default function WhoWroteThat({ code, me, hostUid, playerList, game }) {
+export default function WhoWroteThat({ code, me, hostUid, playerList, connectedCount, game }) {
+  const isHost = hostUid === me.uid
+
   useEffect(() => {
     if (game) return
-    setupRound(
-      code,
-      playerList.map((p) => p.uid)
-    )
-  }, [code, game, playerList])
+    setupLobby(code)
+  }, [code, game])
+
+  const { majorityReached } = getReadyStatus(game?.ready, connectedCount)
 
   useEffect(() => {
-    if (game?.phase !== 'editing' || !game.segments) return
-    checkRoundComplete(code)
-  }, [code, game?.phase, game?.segments])
+    if (game?.phase === 'lobby' && majorityReached) {
+      beginRound(
+        code,
+        playerList.map((p) => p.uid)
+      )
+    }
+  }, [code, game?.phase, majorityReached, playerList])
 
   if (!game) {
     return (
       <div className="card center-text">
-        <p>Digging up a paragraph...</p>
+        <p>Setting up...</p>
       </div>
     )
   }
+
+  if (game.phase === 'lobby') {
+    return (
+      <div className="page">
+        <div className="brand">
+          <h1>Who Wrote That?</h1>
+        </div>
+
+        <div className="card center-text">
+          <h3>Group Mode</h3>
+          <p style={{ color: 'var(--text-dim)' }}>
+            {game.groupMode
+              ? 'Everyone edits one shared paragraph together, first-come-first-served.'
+              : 'Traditional: everyone edits their own paragraph, then you vote and guess who wrote what.'}
+          </p>
+          {isHost ? (
+            <button
+              className="secondary"
+              onClick={() => setGroupMode(code, !game.groupMode)}
+            >
+              {game.groupMode ? 'Switch to Traditional' : 'Switch to Group Mode'}
+            </button>
+          ) : (
+            <p className="pill">{game.groupMode ? 'Group Mode' : 'Traditional'} selected by host</p>
+          )}
+        </div>
+
+        <div className="card center-text">
+          <ReadyButton code={code} uid={me.uid} readyMap={game.ready} connectedCount={connectedCount} />
+        </div>
+      </div>
+    )
+  }
+
+  if (game.mode === 'traditional') {
+    return (
+      <TraditionalMode
+        code={code}
+        me={me}
+        hostUid={hostUid}
+        playerList={playerList}
+        connectedCount={connectedCount}
+        game={game}
+      />
+    )
+  }
+
+  return (
+    <GroupMode code={code} me={me} hostUid={hostUid} playerList={playerList} game={game} />
+  )
+}
+
+function GroupMode({ code, me, hostUid, playerList, game }) {
+  useEffect(() => {
+    if (game.phase !== 'editing' || !game.segments) return
+    checkGroupRoundComplete(code)
+  }, [code, game.phase, game.segments])
 
   const nameFor = (uid) => playerList.find((p) => p.uid === uid)?.name ?? '???'
 

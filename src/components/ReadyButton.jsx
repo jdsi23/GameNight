@@ -1,6 +1,6 @@
 import { getReadyStatus, setPlayerReady } from '../lib/majorityReady'
 
-export default function ReadyButton({ code, uid, readyMap, connectedCount }) {
+export default function ReadyButton({ code, uid, readyMap, connectedCount, field = 'ready', label = "I'm Ready" }) {
   const { readyCount, requiredCount, majorityReached } = getReadyStatus(
     readyMap,
     connectedCount
@@ -11,10 +11,10 @@ export default function ReadyButton({ code, uid, readyMap, connectedCount }) {
     <div className="ready-bar">
       <button
         className={iAmReady ? 'secondary' : ''}
-        onClick={() => setPlayerReady(code, uid, !iAmReady)}
+        onClick={() => setPlayerReady(code, uid, !iAmReady, field)}
         disabled={majorityReached}
       >
-        {iAmReady ? "I'm Ready ✓" : "I'm Ready"}
+        {iAmReady ? `${label} ✓` : label}
       </button>
       <span className="pill">
         {readyCount}/{requiredCount} needed ({connectedCount} in party)

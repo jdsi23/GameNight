@@ -1,7 +1,9 @@
 import { getGame } from '../games/registry'
+import { returnToLobby } from '../lib/room'
 
 export default function GameShell({ code, meta, me, playerList, connectedCount, game }) {
   const gameDef = getGame(meta.gameId)
+  const isHost = meta.hostUid === me.uid
 
   if (!gameDef) {
     return (
@@ -15,6 +17,16 @@ export default function GameShell({ code, meta, me, playerList, connectedCount, 
 
   return (
     <div className="page">
+      {isHost && (
+        <button
+          type="button"
+          className="secondary"
+          style={{ alignSelf: 'flex-start' }}
+          onClick={() => returnToLobby(code)}
+        >
+          ← Change Game
+        </button>
+      )}
       <GameComponent
         code={code}
         me={me}
