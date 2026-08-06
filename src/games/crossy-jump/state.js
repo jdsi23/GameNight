@@ -12,10 +12,7 @@ export const ROUND_MS = 2 * 60 * 1000
 export const RESPAWN_MS = 1500
 export const INVINCIBLE_MS = 250
 export const RESPAWN_SETBACK_ROWS = 4
-
-export const BOOST_DURATION_MS = 4000
-export const BOOST_COOLDOWN_MS = 8000
-export const BOOST_MULTIPLIER = 2.3
+export const MOVE_COOLDOWN_MS = 300
 
 /** Attempted by any client once it sees an empty game node — sets up character select. */
 export async function setupLobby(code) {
@@ -111,11 +108,25 @@ export async function finishPlayer(code, uid) {
   })
 }
 
-/** The Blocker's one ability in this first version: speed up traffic in a target row a while. */
-export async function triggerBoost(code, targetRow) {
-  await update(ref(db, `rooms/${code}/game/blockerAbility`), {
-    targetRow,
-    triggeredAt: Date.now(),
+/**
+ * The Blocker's attacks are player-locked, guaranteed hits on the chosen runner, not an
+ * area/row effect that may or may not land — the target's own client is the one that actually
+ * carries out the effect (see RunnerView) so it plays out with the same respawn timing as a
+ * normal traffic hit instead of just teleporting them. This is a transaction (not a plain write)
+ * because Fire also needs the target's row *at the moment of the attack* so it can ignite that
+ * row for everyone else too, not just guarantee-hit the original target.
+ */
+export async function triggerAttack(code, type, targetUid) {
+  await attemptTransaction(gameRef(code), (current) => {
+    if (!current) return
+    const row = current.positions?.[targetUid]?.row ?? 0
+    return {
+      ...current,
+      blockerAbility: {
+        ...(current.blockerAbility ?? {}),
+        [type]: { targetUid, row, triggeredAt: Date.now() },
+      },
+    }
   })
 }
 
