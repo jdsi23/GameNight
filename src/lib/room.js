@@ -25,6 +25,59 @@ export function hostUidRef(code) {
   return ref(db, `rooms/${code}/meta/hostUid`)
 }
 
+function openRoomRef(code) {
+  return ref(db, `openRooms/${code}`)
+}
+
+/**
+ * Recomputes whether this room should be listed as an open, joinable-by-browsing party, and
+ * writes (or removes) its openRooms/{code} index entry accordingly. Recomputing from scratch
+ * each time — rather than incrementally patching a counter — means it can't drift out of sync
+ * with reality; it's cheap enough to just call after anything that could change the answer
+ * (create, join, leave, host change, game start/end).
+ *
+ * This is best-effort and never throws: it's supplementary (the "browse and join" list), and a
+ * failure here — e.g. security rules not yet covering openRooms — should never block the actual
+ * room creation/join/etc. it's piggybacking on.
+ */
+export async function syncOpenRoomIndex(code) {
+  try {
+    const metaSnap = await get(ref(db, `rooms/${code}/meta`))
+    const meta = metaSnap.val()
+    if (!meta || !meta.open || meta.status !== 'lobby') {
+      await remove(openRoomRef(code))
+      return
+    }
+
+    const playersSnap = await get(ref(db, `rooms/${code}/players`))
+    const players = playersSnap.val() ?? {}
+    const playerCount = Object.keys(players).length
+    if (playerCount === 0) {
+      await remove(openRoomRef(code))
+      return
+    }
+
+    await set(openRoomRef(code), {
+      hostName: players[meta.hostUid]?.name ?? '???',
+      playerCount,
+      createdAt: meta.createdAt ?? Date.now(),
+    })
+  } catch (err) {
+    console.warn('syncOpenRoomIndex failed (non-fatal)', err)
+  }
+}
+
+/** Live list of open parties for the home screen, newest first. */
+export function subscribeOpenRooms(callback) {
+  return onValue(ref(db, 'openRooms'), (snap) => {
+    const val = snap.val() ?? {}
+    const list = Object.entries(val)
+      .map(([code, room]) => ({ code, ...room }))
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+    callback(list)
+  })
+}
+
 /**
  * Creates a new room with a fresh code and makes `uid` the host. Returns the room code.
  *
@@ -35,7 +88,7 @@ export function hostUidRef(code) {
  * not something to rely on — each write below only ever reads data that a *previous, already
  * -committed* write produced, so every rule check is unambiguous.
  */
-export async function createRoom(uid, nickname) {
+export async function createRoom(uid, nickname, open = false) {
   for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
     const code = generateRoomCode()
     const metaRef = ref(db, `rooms/${code}/meta`)
@@ -51,9 +104,11 @@ export async function createRoom(uid, nickname) {
     await update(metaRef, {
       status: 'lobby',
       gameId: null,
+      open,
       createdAt: serverTimestamp(),
     })
     onDisconnect(hostUidRef(code)).set(null)
+    if (open) await syncOpenRoomIndex(code)
     return code
   }
   throw new Error('Could not generate a free room code, please try again.')
@@ -70,6 +125,7 @@ export async function joinRoom(code, uid, nickname) {
     joinedAt: serverTimestamp(),
     connected: true,
   })
+  await syncOpenRoomIndex(code)
   return code
 }
 
@@ -106,6 +162,7 @@ export async function attemptClaimHost(code, uid) {
     if (snap.exists() && snap.val()) return
     await set(hostUidRef(code), uid)
     onDisconnect(hostUidRef(code)).set(null)
+    await syncOpenRoomIndex(code)
   } catch {
     // Another client won the race, or rules rejected us (e.g. we're not a room member yet). Fine.
   }
@@ -121,6 +178,7 @@ export async function leaveRoom(code, uid) {
     await set(hostUidRef(code), null)
   }
   await remove(playerRef(code, uid))
+  await syncOpenRoomIndex(code)
 }
 
 export async function startGame(code, gameId) {
@@ -129,12 +187,14 @@ export async function startGame(code, gameId) {
     gameId,
     status: 'in-game',
   })
+  await syncOpenRoomIndex(code)
 }
 
 /** Replays the same game fresh (used by the "Play Again" screen). */
 export async function replayGame(code, gameId) {
   await set(ref(db, `rooms/${code}/game`), null)
   await update(ref(db, `rooms/${code}/meta`), { gameId, status: 'in-game' })
+  await syncOpenRoomIndex(code)
 }
 
 export async function returnToLobby(code) {
@@ -143,4 +203,5 @@ export async function returnToLobby(code) {
     gameId: null,
     status: 'lobby',
   })
+  await syncOpenRoomIndex(code)
 }
