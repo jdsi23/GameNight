@@ -2,6 +2,7 @@ import WhatsMyNumber from './whats-my-number/WhatsMyNumber'
 import IsItThatBad from './is-it-that-bad/IsItThatBad'
 import WhoWroteThat from './who-wrote-that/WhoWroteThat'
 import HowFunnyAreYou from './how-funny-are-you/HowFunnyAreYou'
+import CrossyJump from './crossy-jump/CrossyJump'
 
 export const GAMES = [
   {
@@ -35,6 +36,14 @@ export const GAMES = [
       'Each round a rotating judge rates your jokes 1-10. Once someone hits 15 points, the floor starts rising — fall below the average and you\'re out.',
     minPlayers: 2,
     component: HowFunnyAreYou,
+  },
+  {
+    id: 'crossy-jump',
+    name: 'Crossy Jump',
+    description:
+      'Hop across traffic to reach the finish line while one secret Blocker speeds up the cars to stop you.',
+    minPlayers: 2,
+    component: CrossyJump,
   },
 ]
 
