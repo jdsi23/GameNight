@@ -1,6 +1,7 @@
 import WhatsMyNumber from './whats-my-number/WhatsMyNumber'
 import IsItThatBad from './is-it-that-bad/IsItThatBad'
 import WhoWroteThat from './who-wrote-that/WhoWroteThat'
+import HowFunnyAreYou from './how-funny-are-you/HowFunnyAreYou'
 
 export const GAMES = [
   {
@@ -26,6 +27,14 @@ export const GAMES = [
       'A classic paragraph gets vandalized one word at a time. Race to claim a line and ruin it.',
     minPlayers: 2,
     component: WhoWroteThat,
+  },
+  {
+    id: 'how-funny-are-you',
+    name: 'How Funny Are You?',
+    description:
+      'Each round a rotating judge rates your jokes 1-10. Once someone hits 15 points, the floor starts rising — fall below the average and you\'re out.',
+    minPlayers: 2,
+    component: HowFunnyAreYou,
   },
 ]
 

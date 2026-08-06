@@ -84,6 +84,7 @@ function JoinInline({ code, uid }) {
     try {
       saveNickname(nickname.trim())
       await joinRoom(code, uid, nickname.trim())
+      setBusy(false)
     } catch (err) {
       setError(err.message)
       setBusy(false)
