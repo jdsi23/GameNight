@@ -2,18 +2,34 @@ import { useEffect, useState } from 'react'
 import ReadyButton from '../../components/ReadyButton'
 import PlayAgainScreen from '../../components/PlayAgainScreen'
 import { getReadyStatus } from '../../lib/majorityReady'
-import { castVote, endDiscussion, finishVoting, setupRound } from './state'
+import { CATEGORIES } from './topics'
+import {
+  beginRound,
+  castVote,
+  endDiscussion,
+  finishVoting,
+  setTopicCategory,
+  setupLobby,
+} from './state'
 
 export default function IsItThatBad({ code, me, hostUid, playerList, connectedCount, game }) {
   const [now, setNow] = useState(Date.now())
+  const isHost = hostUid === me.uid
 
   useEffect(() => {
     if (game) return
-    setupRound(
-      code,
-      playerList.map((p) => p.uid)
-    )
-  }, [code, game, playerList])
+    setupLobby(code)
+  }, [code, game])
+
+  const { majorityReached: lobbyReady } = getReadyStatus(game?.ready, connectedCount)
+  useEffect(() => {
+    if (game?.phase === 'lobby' && lobbyReady) {
+      beginRound(
+        code,
+        playerList.map((p) => p.uid)
+      )
+    }
+  }, [code, game?.phase, lobbyReady, playerList])
 
   useEffect(() => {
     if (game?.phase !== 'discussion') return
@@ -22,7 +38,7 @@ export default function IsItThatBad({ code, me, hostUid, playerList, connectedCo
   }, [game?.phase])
 
   const { majorityReached } = getReadyStatus(game?.ready, connectedCount)
-  const remainingMs = game ? Math.max(0, game.timerEndsAt - now) : 0
+  const remainingMs = game?.phase === 'discussion' ? Math.max(0, game.timerEndsAt - now) : 0
 
   useEffect(() => {
     if (game?.phase !== 'discussion') return
@@ -46,7 +62,43 @@ export default function IsItThatBad({ code, me, hostUid, playerList, connectedCo
   if (!game) {
     return (
       <div className="card center-text">
-        <p>Picking a topic...</p>
+        <p>Setting up...</p>
+      </div>
+    )
+  }
+
+  if (game.phase === 'lobby') {
+    const categoryLabel =
+      CATEGORIES.find((c) => c.id === game.topicCategory)?.label ?? 'Random'
+    return (
+      <div className="page">
+        <div className="brand">
+          <h1>Is It Really That Bad?</h1>
+        </div>
+
+        <div className="card center-text">
+          <h3>Topic Type</h3>
+          {isHost ? (
+            <select
+              value={game.topicCategory ?? 'random'}
+              onChange={(e) => setTopicCategory(code, e.target.value)}
+              style={{ maxWidth: 280, margin: '0 auto', display: 'block' }}
+            >
+              <option value="random">Random (any category)</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="pill">{categoryLabel} — picked by host</p>
+          )}
+        </div>
+
+        <div className="card center-text">
+          <ReadyButton code={code} uid={me.uid} readyMap={game.ready} connectedCount={connectedCount} />
+        </div>
       </div>
     )
   }
